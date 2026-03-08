@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BeejanRide — Marts ERD</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Syne:wght@700;800&display=swap');
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #0a0e1a;
+    --panel: #0f1628;
+    --border: #1e2d4a;
+    --fact: #0d3060;
+    --fact-border: #1a6bc4;
+    --fact-head: #1a6bc4;
+    --dim: #0d2e1a;
+    --dim-border: #1a8c47;
+    --dim-head: #1a8c47;
+    --pk: #f0b429;
+    --fk: #a78bfa;
+    --col: #94a3b8;
+    --text: #e2e8f0;
+    --muted: #475569;
+    --line: #1e3a5f;
+    --accent: #1a6bc4;
+  }
+
+  body {
+    background: var(--bg);
+    font-family: 'JetBrains Mono', monospace;
+    color: var(--text);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 40px 20px 60px;
+    overflow-x: auto;
+  }
+
+  /* background grid */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(26,107,196,0.04) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(26,107,196,0.04) 1px, transparent 1px);
+    background-size: 32px 32px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  header {
+    text-align: center;
+    margin-bottom: 48px;
+    position: relative;
+    z-index: 1;
+  }
+
+  header h1 {
+    font-family: 'Syne', sans-serif;
+    font-size: 2rem;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    color: #fff;
+  }
+
+  header h1 span { color: var(--fact-border); }
+
+  header p {
+    font-size: 0.75rem;
+    color: var(--muted);
+    margin-top: 6px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  .diagram {
+    position: relative;
+    width: 1000px;
+    height: 620px;
+    z-index: 1;
+  }
+
+  /* SVG connector lines */
+  .connectors {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+  }
+
+  /* Table cards */
+  .table-card {
+    position: absolute;
+    border-radius: 10px;
+    overflow: hidden;
+    border: 1px solid;
+    box-shadow: 0 4px 32px rgba(0,0,0,0.5);
+    min-width: 220px;
+    animation: fadeUp 0.6s ease both;
+  }
+
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(16px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  .table-card.fact {
+    background: var(--fact);
+    border-color: var(--fact-border);
+  }
+  .table-card.dim {
+    background: var(--dim);
+    border-color: var(--dim-border);
+  }
+
+  .table-head {
+    padding: 10px 14px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.8rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+
+  .fact .table-head { background: var(--fact-head); }
+  .dim  .table-head { background: var(--dim-head); }
+
+  .badge {
+    font-size: 0.6rem;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    margin-left: auto;
+  }
+  .fact .badge { background: rgba(255,255,255,0.15); color: #fff; }
+  .dim  .badge { background: rgba(255,255,255,0.15); color: #fff; }
+
+  .table-body { padding: 6px 0; }
+
+  .col-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 5px 14px;
+    font-size: 0.72rem;
+    color: var(--col);
+    border-bottom: 1px solid rgba(255,255,255,0.04);
+    transition: background 0.15s;
+  }
+  .col-row:last-child { border-bottom: none; }
+  .col-row:hover { background: rgba(255,255,255,0.04); }
+
+  .col-icon {
+    font-size: 0.65rem;
+    width: 16px;
+    text-align: center;
+    flex-shrink: 0;
+  }
+  .pk  { color: var(--pk); }
+  .fk  { color: var(--fk); }
+  .col-name { flex: 1; }
+  .col-type {
+    color: var(--muted);
+    font-size: 0.65rem;
+  }
+
+  .col-row.pk-row .col-name { color: var(--pk); font-weight: 600; }
+  .col-row.fk-row .col-name { color: var(--fk); }
+
+  .divider {
+    height: 1px;
+    background: rgba(255,255,255,0.08);
+    margin: 4px 0;
+  }
+
+  /* Legend */
+  .legend {
+    display: flex;
+    gap: 28px;
+    margin-top: 36px;
+    position: relative;
+    z-index: 1;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 14px 24px;
+    font-size: 0.72rem;
+    color: var(--muted);
+  }
+  .legend-item { display: flex; align-items: center; gap: 8px; }
+  .legend-dot {
+    width: 10px; height: 10px; border-radius: 2px; flex-shrink: 0;
+  }
+
+  /* Positions */
+  #fct_trips   { top: 180px; left: 370px; width: 260px; animation-delay: 0.1s; }
+  #dim_drivers { top: 40px;  left: 20px;  width: 230px; animation-delay: 0.2s; }
+  #dim_riders  { top: 40px;  left: 750px; width: 230px; animation-delay: 0.3s; }
+  #dim_cities  { top: 420px; left: 180px; width: 230px; animation-delay: 0.4s; }
+
+  /* Relation labels */
+  .rel-label {
+    position: absolute;
+    font-size: 0.62rem;
+    color: var(--muted);
+    background: var(--bg);
+    padding: 2px 5px;
+    border-radius: 3px;
+    letter-spacing: 0.04em;
+    pointer-events: none;
+    z-index: 10;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>BeejanRide <span>Analytics</span> — Marts ERD</h1>
+  <p>Star Schema · Fact &amp; Dimension Tables · BigQuery</p>
+</header>
+
+<div class="diagram">
+
+  <!-- SVG lines -->
+  <svg class="connectors" viewBox="0 0 1000 620" preserveAspectRatio="none">
+    <defs>
+      <marker id="arrow-dim" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+        <path d="M0,0 L0,6 L8,3 z" fill="#1a8c47" opacity="0.7"/>
+      </marker>
+      <marker id="arrow-fact" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+        <path d="M0,0 L0,6 L8,3 z" fill="#1a6bc4" opacity="0.7"/>
+      </marker>
+    </defs>
+
+    <!-- dim_drivers → fct_trips -->
+    <path d="M250,140 Q310,140 370,240"
+      fill="none" stroke="#1a8c47" stroke-width="1.5" stroke-dasharray="6,3" opacity="0.6"
+      marker-end="url(#arrow-dim)"/>
+
+    <!-- dim_riders → fct_trips -->
+    <path d="M750,140 Q690,140 630,240"
+      fill="none" stroke="#1a8c47" stroke-width="1.5" stroke-dasharray="6,3" opacity="0.6"
+      marker-end="url(#arrow-dim)"/>
+
+    <!-- dim_cities → fct_trips -->
+    <path d="M295,470 Q370,470 370,400"
+      fill="none" stroke="#1a8c47" stroke-width="1.5" stroke-dasharray="6,3" opacity="0.6"
+      marker-end="url(#arrow-dim)"/>
+  </svg>
+
+  <!-- Relation labels -->
+  <div class="rel-label" style="top:168px; left:285px;">driver_id</div>
+  <div class="rel-label" style="top:168px; left:648px;">rider_id</div>
+  <div class="rel-label" style="top:448px; left:318px;">city_id</div>
+
+  <!-- fct_trips -->
+  <div class="table-card fact" id="fct_trips">
+    <div class="table-head">
+      ⚡ fct_trips
+      <span class="badge">Fact</span>
+    </div>
+    <div class="table-body">
+      <div class="col-row pk-row"><span class="col-icon pk">🔑</span><span class="col-name">trip_id</span><span class="col-type">INT</span></div>
+      <div class="divider"></div>
+      <div class="col-row fk-row"><span class="col-icon fk">→</span><span class="col-name">driver_id</span><span class="col-type">INT</span></div>
+      <div class="col-row fk-row"><span class="col-icon fk">→</span><span class="col-name">rider_id</span><span class="col-type">INT</span></div>
+      <div class="col-row fk-row"><span class="col-icon fk">→</span><span class="col-name">city_id</span><span class="col-type">INT</span></div>
+      <div class="divider"></div>
+      <div class="col-row"><span class="col-icon"></span><span class="col-name">trip_date</span><span class="col-type">DATE</span></div>
+      <div class="col-row"><span class="col-icon"></span><span class="col-name">trip_status</span><span class="col-type">STRING</span></div>
+      <div class="col-row"><span class="col-icon"></span><span class="col-name">actual_fare</span><span class="col-type">FLOAT</span></div>
+      <div class="col-row"><span class="col-icon"></span><span class="col-name">net_revenue</span><span class="col-type">FLOAT</span></div>
+      <div class="col-row"><span class="col-icon"></span><span class="col-name">gross_revenue</span><span class="col-type">FLOAT</span></div>
+      <div class="col-row"><span class="col-icon"></span><span class="col-name">surge_multiplier</span><span class="col-type">FLOAT</span></div>
+      <div class="col-row"><span class="col-icon"></span><span class="col-name">trip_duration_minutes</span><span class="col-type">INT</span></div>
+      <div class="col-row"><span class="col-icon"></span><span class="col-name">is_surge</span><span class="col-type">BOOL</span></div>
+      <div class="col-row"><span class="col-icon"></span><span class="col-name">is_corporate</span><span class="col-type">BOOL</span></div>
+      <div class="col-row"><span class="col-icon"></span><span class="col-name">revenue_type</span><span class="col-type">STRING</span></div>
+      <div class="col-row"><span class="col-icon"></span><span class="col-name">is_revenue_realised</span><span class="col-type">BOOL</span></div>
+      <div class="col-row"><span class="col-icon"></span><span class="col-name">payment_status</span><span class="col-type">STRING</span></div>
+      <div class="col-row"><span class="col-icon"></span><span class="col-name">fraud_signal_score</span><span class="col-type">INT</span></div>
+      <div class="col-row"><span class="col-icon"></span><span class="col-name">risk_tier</span><span class="col-type">STRING</span></div>
+    </div>
+  </div>
+
+  <!-- dim_drivers -->
+  <div class="table-card dim" id="dim_drivers">
+    <div class="table-head">
+      👤 dim_drivers
+      <span class="badge">Dim</span>
+    </div>
+    <div class="table-body">
+      <div class="col-row pk-row"><span class="col-icon pk">🔑</span><span class="col-name">driver_id</span><span class="col-type">INT</span></div>
+      <div class="divider"></div>
+      <div class="col-row"><span class="col-icon"></span><span class="col-name">driver_status</span><span class="col-type">STRING</span></div>
+      <div class="col-row"><span class="col-icon"></span><span class="col-name">onboarding_date</span><span class="col-type">DATE</span></div>
+      <div class="col-row"><span class="col-icon"></span><span class="col-name">rating</span><span class="col-type">FLOAT</span></div>
+      <div class="col-row"><span class="col-icon"></span><span class="col-name">total_trips</span><span class="col-type">INT</span></div>
+      <div class="col-row"><span class="col-icon"></span><span class="col-name">total_revenue</span><span class="col-type">FLOAT</span></div>
+      <div class="col-row"><span class="col-icon"></span><span class="col-name">completion_rate_pct</span><span class="col-type">FLOAT</span></div>
+      <div class="col-row"><span class="col-icon"></span><span class="col-name">total_online_hours</span><span class="col-type">FLOAT</span></div>
+      <div class="col-row"><span class="col-icon"></span><span class="col-name">is_churned</span><span class="col-type">BOOL</span></div>
+      <div class="col-row"><span class="col-icon"></span><span class="col-name">days_since_last_trip</span><span class="col-type">INT</span></div>
+    </div>
+  </div>
+
+  <!-- dim_riders -->
+  <div class="table-card dim" id="dim_riders">
+    <div class="table-head">
+      🧑 dim_riders
+      <span class="badge">Dim</span>
+    </div>
+    <div class="table-body">
+      <div class="col-row pk-row"><span class="col-icon pk">🔑</span><span class="col-name">rider_id</span><span class="col-type">INT</span></div>
+      <div class="divider"></div>
+      <div class="col-row"><span class="col-icon"></span><span class="col-name">signup_date</span><span class="col-type">DATE</span></div>
+      <div class="col-row"><span class="col-icon"></span><span class="col-name">country</span><span class="col-type">STRING</span></div>
+      <div class="col-row"><span class="col-icon"></span><span class="col-name">referral_code</span><span class="col-type">STRING</span></div>
+      <div class="col-row"><span class="col-icon"></span><span class="col-name">total_trips</span><span class="col-type">INT</span></div>
+      <div class="col-row"><span class="col-icon"></span><span class="col-name">total_spent</span><span class="col-type">FLOAT</span></div>
+      <div class="col-row"><span class="col-icon"></span><span class="col-name">avg_fare_per_trip</span><span class="col-type">FLOAT</span></div>
+      <div class="col-row"><span class="col-icon"></span><span class="col-name">is_active</span><span class="col-type">BOOL</span></div>
+      <div class="col-row"><span class="col-icon"></span><span class="col-name">days_to_first_trip</span><span class="col-type">INT</span></div>
+    </div>
+  </div>
+
+  <!-- dim_cities -->
+  <div class="table-card dim" id="dim_cities">
+    <div class="table-head">
+      🏙 dim_cities
+      <span class="badge">Dim</span>
+    </div>
+    <div class="table-body">
+      <div class="col-row pk-row"><span class="col-icon pk">🔑</span><span class="col-name">city_id</span><span class="col-type">INT</span></div>
+      <div class="divider"></div>
+      <div class="col-row"><span class="col-icon"></span><span class="col-name">city_name</span><span class="col-type">STRING</span></div>
+      <div class="col-row"><span class="col-icon"></span><span class="col-name">country</span><span class="col-type">STRING</span></div>
+      <div class="col-row"><span class="col-icon"></span><span class="col-name">launch_date</span><span class="col-type">DATE</span></div>
+    </div>
+  </div>
+
+</div>
+
+<!-- Legend -->
+<div class="legend">
+  <div class="legend-item"><div class="legend-dot" style="background:#1a6bc4;"></div> Fact Table</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#1a8c47;"></div> Dimension Table</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#f0b429;"></div> Primary Key (PK)</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#a78bfa;"></div> Foreign Key (FK)</div>
+  <div class="legend-item">
+    <svg width="28" height="10"><line x1="0" y1="5" x2="22" y2="5" stroke="#1a8c47" stroke-width="1.5" stroke-dasharray="4,2"/></svg>
+    FK Relationship
+  </div>
+</div>
+
+</body>
+</html>

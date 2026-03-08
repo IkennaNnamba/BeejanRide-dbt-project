@@ -1,0 +1,22 @@
+# dbt compiled output and run artifacts
+target/
+dbt_packages/
+logs/
+
+# dbt profiles — contains warehouse credentials, never commit this
+profiles.yml
+
+# BigQuery service account key files
+*.json
+
+# Python virtual environment
+env/
+venv/
+.env
+
+# OS generated files
+.DS_Store
+Thumbs.db
+
+# VS Code settings (optional — remove this if you want to share workspace settings)
+.vscode/

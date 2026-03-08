@@ -1,0 +1,41 @@
+version: 2
+
+models:
+  - name: int_rider_lifetime_value
+    description: |
+      One row per rider with lifetime value metrics.
+      Includes total spend, trip counts, activity status and days to first trip.
+      Riders who signed up but never tripped are included with null trip metrics.
+
+      Upstream: int_trips_enriched, stg_riders
+      Downstream: fct_rider_ltv, mart_rider_segments
+
+    columns:
+      - name: rider_id
+        description: Unique rider identifier
+        tests:
+          - not_null
+          - unique
+
+      - name: total_spent
+        description: Sum of actual_fare across all completed trips for this rider.
+        tests:
+          - not_null:
+              config:
+                where: "completed_trips > 0"
+
+      - name: is_active
+        description: True if the rider has taken a trip in the last 30 days.
+        tests:
+          - not_null:
+              config:
+                where: "total_trips is not null"
+
+      - name: days_to_first_trip
+        description: |
+          Number of days between signup and their first trip.
+          Useful for measuring how quickly riders convert after signing up.
+          Null for riders who have never taken a trip.
+
+      - name: avg_fare_per_trip
+        description: Average fare paid per completed trip.

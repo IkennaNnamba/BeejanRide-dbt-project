@@ -1,0 +1,28 @@
+version: 2
+
+snapshots:
+  - name: drivers_snapshot
+    description: "Slowly Changing Dimension (Type 2) table for tracking driver status and vehicle assignments over time."
+    config:
+      target_schema: BeejanRide_snapshots
+    columns:
+      - name: driver_id
+        description: "The unique primary key for the driver."
+        tests:
+          - unique
+          - not_null
+      - name: driver_status
+        description: "Current status of the driver (e.g., active, inactive, suspended)."
+        tests:
+          - accepted_values:
+              values: ['active', 'inactive', 'pending', 'suspended']
+      - name: rating
+        description: "The driver's average star rating."
+        tests:
+          - dbt_utils.accepted_range:
+              min_value: 0
+              max_value: 5
+      - name: dbt_valid_from
+        description: "The timestamp when this row version became active."
+      - name: dbt_valid_to
+        description: "The timestamp when this row version was superseded (null if current)."

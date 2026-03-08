@@ -1,0 +1,40 @@
+version: 2
+
+macros:
+  - name: standardize_timestamp
+    description: >
+      Converts a column to a BigQuery TIMESTAMP type in a consistent way.
+
+      Handles common input formats (STRING, DATETIME, TIMESTAMP) and is safe
+      to use on nullable columns. Returns NULL if the input cannot be parsed.
+
+      Intended for standardizing all timestamp fields across staging models.
+      
+      
+    arguments:
+      - name: column_name
+        type: string
+        description: The name of the column to cast/convert (passed as a string literal)
+
+  - name: deduplicate
+    description: >
+      Removes duplicate rows within a relation, keeping only the most recent row
+      based on the ordering expression.
+
+      Uses ROW_NUMBER() window function under the hood. Efficient for BigQuery.
+
+      Typically used in staging models after initial cleaning to handle
+      append-only incremental sources (Airbyte append mode).
+
+    arguments:
+      - name: relation
+        type: string
+        description: The relation (CTE name or ref) that should be deduplicated
+
+      - name: partition_by
+        type: string
+        description: Column(s) to partition by (usually the primary key or natural key)
+
+      - name: order_by
+        type: string
+        description: ORDER BY expression to determine which row to keep (e.g. 'updated_at desc')

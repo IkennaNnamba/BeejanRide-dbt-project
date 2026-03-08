@@ -1,0 +1,235 @@
+version: 2
+
+sources:
+  - name: beejanride_raw
+    database: beejanride-project
+    schema: BeejanRide_raw_dataset
+    description: |
+      Raw transactional data from BeejanRide Postgres database.
+      Ingested via Airbyte with incremental append modes (using cursors like updated_at or created_at).
+      Do not modify these tables. High-volume tables like driver_status_events_raw are monitored for efficiency.
+    config:
+      freshness:
+        warn_after: {count: 3, period: hour}
+        error_after: {count: 6, period: hour} 
+
+    tables:
+      - name: pg_trips_raw
+        description: Raw data for all trips, including requests, pickups, dropoffs, and status.
+        config:
+          loaded_at_field: updated_at 
+          freshness:
+            warn_after: {count: 2, period: hour}
+            error_after: {count: 2, period: hour}
+        columns:
+          - name: trip_id
+            description: Unique trip identifier
+            tests:
+              - not_null
+          - name: rider_id
+            description: Rider ID
+            tests:
+              - not_null
+          - name: driver_id
+            description: Driver ID
+            tests:
+              - not_null
+
+          - name: vehicle_id
+            description: Vehicle used
+            tests:
+              - not_null  
+          - name: city_id
+            description: City identifier
+            tests:
+              - not_null
+
+          - name: requested_at
+            description: Time ride was requested
+            tests:
+              - not_null
+          - name: pickup_at
+            description: Pickup timestamp
+          - name: dropoff_at
+            description: Dropoff timestamp
+          - name: status
+            description: completed / cancelled / no_show
+            tests:
+              - accepted_values:
+                  arguments:
+                    values: ['completed', 'cancelled', 'no_show']
+          - name: estimated_fare
+            description: Initial fare estimate
+          - name: actual_fare
+            description: Final fare
+          - name: surge_multiplier
+            description: Surge applied
+          - name: payment_method
+            description: card / wallet / cash
+            tests:
+              - accepted_values:
+                  arguments:
+                    values: ['card', 'wallet', 'cash']
+          - name: is_corporate
+            description: Boolean
+          - name: created_at
+            description: Record creation timestamp
+            tests:
+              - not_null
+          - name: updated_at
+            description: Last update timestamp
+            tests:
+              - not_null
+
+      - name: pg_cities_raw
+        description: Raw data for cities where BeejanRide operates.
+        config:
+          freshness: null  
+        columns:
+          - name: city_id
+            description: City ID
+            tests:
+              - not_null
+          - name: city_name
+            description: City name
+            tests:
+              - not_null
+          - name: country
+            description: Country
+          - name: launch_date
+            description: City launch date
+
+      - name: pg_drivers_raw
+        description: Raw data for drivers, including onboarding, status, and ratings.
+        config:
+          loaded_at_field: updated_at  
+          freshness:
+            warn_after: {count: 4, period: hour}  
+            error_after: {count: 8, period: hour}
+        columns:
+          - name: driver_id
+            description: Driver ID
+            tests:
+              - not_null
+              - unique
+          - name: onboarding_date
+            description: Driver join date
+            tests:
+              - not_null
+          - name: driver_status
+            description: active / suspended / inactive
+            tests:
+              - accepted_values:
+                  arguments:
+                    values: ['active', 'suspended', 'inactive']
+          - name: city_id
+            description: City
+            tests:
+              - not_null 
+          - name: vehicle_id
+            description: Current vehicle
+            tests:
+              - not_null
+          - name: rating
+            description: Average rating
+          - name: created_at
+            description: Created timestamp
+            tests:
+              - not_null
+          - name: updated_at
+            description: Updated timestamp
+            tests:
+              - not_null
+
+      - name: pg_riders_raw
+        description: Raw data for riders, including signup and referrals.
+        config:
+          loaded_at_field: created_at 
+          freshness:
+            warn_after: {count: 4, period: hour}
+            error_after: {count: 8, period: hour}
+        columns:
+          - name: rider_id
+            description: Rider ID
+            tests:
+              - not_null
+          - name: signup_date
+            description: Signup date
+            tests:
+              - not_null
+          - name: country
+            description: Rider country
+          - name: referral_code
+            description: Referral used
+          - name: created_at
+            description: Created timestamp
+            tests:
+              - not_null
+
+      - name: pg_payments_raw
+        description: Raw payment data linked to trips.
+        config:
+          loaded_at_field: created_at
+          freshness:
+            warn_after: {count: 3, period: hour}
+            error_after: {count: 6, period: hour}
+        columns:
+          - name: payment_id
+            description: Payment ID
+            tests:
+              - not_null
+          - name: trip_id
+            description: Trip ID
+            tests:
+              - not_null
+          - name: payment_status
+            description: success / failed
+            tests:
+              - accepted_values:
+                  arguments:
+                    values: ['success', 'failed']
+          - name: payment_provider
+            description: stripe / paypal
+            tests:
+              - accepted_values:
+                  arguments:
+                    values: ['stripe', 'paypal']
+          - name: amount
+            description: Charged amount
+          - name: fee
+            description: Processing fee
+          - name: currency
+            description: Currency
+          - name: created_at
+            description: Payment timestamp
+            tests:
+              - not_null
+
+      - name: pg_driver_status_events_raw
+        description: High-volume raw events for driver online/offline status.
+        config:
+          loaded_at_field: event_timestamp  
+          freshness:
+            warn_after: {count: 2, period: hour}  
+            error_after: {count: 4, period: hour}
+        columns:
+          - name: event_id
+            description: Event ID
+            tests:
+              - not_null
+              - unique
+          - name: driver_id
+            description: Driver ID
+            tests:
+              - not_null
+          - name: status
+            description: online / offline
+            tests:
+              - accepted_values:
+                  arguments:
+                    values: ['online', 'offline']
+          - name: event_timestamp
+            description: Event timestamp
+            tests:
+              - not_null
+

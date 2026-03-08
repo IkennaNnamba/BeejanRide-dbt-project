@@ -1,0 +1,114 @@
+version: 2
+
+models:
+  - name: fct_trips
+    description: |
+      Core fact table with one row per trip.
+      Combines trip details, revenue metrics, and fraud signals.
+      All measures are at the individual trip level.
+      Use trip_date for time-series analysis.
+      Use is_revenue_realised = true to filter to collected revenue only.
+
+      Upstream: int_trips_enriched, int_trips_revenue, int_trips_flagged
+      Downstream: dashboards, fct_revenue, fct_driver_performance
+    
+    columns:
+      - name: trip_id
+        description: Unique trip identifier
+        tests:
+          - not_null
+          - unique
+
+      - name: trip_date
+        description: Date the trip was requested. Used for daily aggregations.
+        tests:
+          - not_null
+
+      - name: trip_status
+        description: Trip outcome — completed, cancelled, or no_show.
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ['completed', 'cancelled', 'no_show']
+
+      - name: is_revenue_realised
+        description: |
+          True only when trip is completed and payment succeeded.
+          Always filter by this when calculating actual revenue collected.
+        tests:
+          - not_null
+
+      - name: net_revenue
+        description: Gross revenue minus payment processing fee.
+
+      - name: fraud_signal_score
+        description: Number of fraud signals that fired on this trip. Range 0-5.
+        tests:
+          - not_null
+
+      - name: risk_tier
+        description: Fraud risk level — clean, low, medium, or high.
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ['clean', 'low', 'medium', 'high']
+
+      - name: driver_id
+        description: Foreign key to dim_drivers.
+        tests:
+          - not_null
+
+      - name: rider_id
+        description: Foreign key to dim_riders.
+        tests:
+          - not_null
+
+      - name: city_id
+        description: Foreign key to dim_cities.
+        tests:
+          - not_null
+  - name: dim_cities
+    description: City reference dimension. One row per city.
+  
+    columns:
+      - name: city_id
+        description: Unique city identifier
+        tests:
+          - not_null
+          - unique
+
+  - name: dim_riders
+    description: |
+      Rider dimension with profile and lifetime value metrics.
+      One row per rider. Includes riders who signed up but never tripped.
+
+    columns:
+      - name: rider_id
+        description: Unique rider identifier
+        tests:
+          - not_null
+          - unique
+      - name: total_spent
+        description: Total amount spent by this rider across all completed trips.
+      - name: is_active
+        description: True if rider has tripped in the last 30 days.
+
+  - name: dim_drivers
+    description: |
+      Driver dimension combining profile, trip performance, and online activity.
+      One row per driver. Null metrics mean the driver has no trips or events yet.
+   
+    columns:
+      - name: driver_id
+        description: Unique driver identifier
+        tests:
+          - not_null
+          - unique
+      - name: is_churned
+        description: True if driver has not taken a trip in 30+ days.
+      - name: total_online_hours
+        description: Total hours the driver has been online across all sessions.
+      - name: completion_rate_pct
+        description: Percentage of assigned trips the driver completed.

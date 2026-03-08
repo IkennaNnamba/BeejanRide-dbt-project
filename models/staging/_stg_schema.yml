@@ -1,0 +1,231 @@
+version: 2
+
+models:
+  - name: stg_trips
+    description: |
+      Cleaned and standardized trips data.
+      Deduplicated, types cast, invalid PKs removed.
+      Supports downstream analytics like revenue per city.
+   
+    columns:
+      - name: trip_id
+        description: Unique trip identifier
+        tests:
+          - not_null
+          - unique  
+      - name: rider_id
+        description: Rider ID
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('stg_riders')
+                field: rider_id
+      - name: driver_id
+        description: Driver ID
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('stg_drivers')
+                field: driver_id
+      - name: vehicle_id
+        description: Vehicle used
+        tests:
+          - not_null
+      - name: city_id
+        description: City identifier
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('stg_cities')
+                field: city_id
+
+      - name: requested_at
+        description: Standardized timestamp when ride was requested
+        tests:
+          - not_null
+      - name: pickup_at
+        description: Standardized pickup timestamp
+      - name: dropoff_at
+        description: Standardized dropoff timestamp
+      - name: status
+        description: Trip status (completed / cancelled / no_show)
+        tests:
+          - accepted_values:
+              arguments:
+                values: ['completed', 'cancelled', 'no_show']
+      - name: estimated_fare
+        description: Initial fare estimate 
+      - name: actual_fare
+        description: Final fare 
+      - name: surge_multiplier
+        description: Surge multiplier 
+      - name: payment_method
+        description: Payment method (card / wallet / cash)
+        tests:
+          - accepted_values:
+              arguments:
+                values: ['card', 'wallet', 'cash']
+      - name: is_corporate
+        description: Whether the trip is corporate 
+        tests:
+          - not_null
+      - name: created_at
+        description: Standardized record creation timestamp
+        tests:
+          - not_null
+      - name: updated_at
+        description: Standardized last update timestamp
+        tests:
+          - not_null
+
+  - name: stg_drivers
+    description: |
+      Cleaned and deduplicated driver reference data.
+      Latest status, rating, vehicle, etc. per driver_id.
+      Used for driver activity, churn, leaderboard, and fraud analysis.
+    
+    columns:
+      - name: driver_id
+        description: Unique driver identifier
+        tests:
+          - not_null
+          - unique
+      - name: onboarding_date
+        description: Date the driver joined/onboarded
+        tests:
+          - not_null
+      - name: driver_status
+        description: Normalized driver status (active / suspended / inactive)
+        tests:
+          - accepted_values:
+              arguments:
+                values: ['active', 'suspended', 'inactive']
+      - name: city_id
+        description: Current city of the driver
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('stg_cities')
+                field: city_id
+      - name: vehicle_id
+        description: Current vehicle assigned to the driver
+        tests:
+          - not_null
+      - name: rating
+        description: Average driver rating 
+      - name: created_at
+        description: Standardized record creation timestamp
+        tests:
+          - not_null
+      - name: updated_at
+        description: Standardized last update timestamp
+        tests:
+          - not_null
+
+  - name: stg_riders
+    description: |
+      Cleaned rider reference data.
+      Signup info and basic attributes.
+      Used for LTV, cohort, and rider segmentation analysis.
+
+    columns:
+      - name: rider_id
+        description: Unique rider identifier
+        tests:
+          - not_null
+          - unique
+      - name: signup_date
+        description: Date the rider signed up
+        tests:
+          - not_null
+      - name: country
+        description: Normalized country of the rider
+        tests:
+          - not_null
+      - name: referral_code
+        description: Referral code used during signup (if any)
+      - name: created_at
+        description: Standardized record creation timestamp
+        tests:
+          - not_null
+  - name: stg_payments
+    description: |
+      Cleaned and deduplicated payment records.
+      Linked to trips via trip_id.
+      Contains charged amount, fees, status, and provider.
+      Supports payment failure rate, revenue, and reliability analysis.
+    
+    columns:
+      - name: payment_id
+        description: Unique payment identifier
+        tests:
+          - not_null
+          - unique
+      - name: trip_id
+        description: Associated trip identifier
+        tests:
+          - not_null
+          - relationships:          
+              arguments:
+                to: ref('stg_trips')
+                field: trip_id
+      - name: payment_status
+        description: Normalized payment outcome (success / failed)
+        tests:
+          - accepted_values:
+              arguments:
+                values: ['success', 'failed']
+      - name: payment_provider
+        description: Normalized payment provider (stripe / paypal)
+        tests:
+          - accepted_values:
+              arguments:
+                values: ['stripe', 'paypal']
+      - name: amount
+        description: Charged amount 
+      - name: fee
+        description: Processing fee 
+      - name: currency
+        description: Currency code (e.g. 'USD', 'NGN')
+        tests:
+          - not_null
+      - name: created_at
+        description: Standardized payment creation timestamp
+        tests:
+          - not_null
+
+  - name: stg_driver_status_events
+    description: |
+      Cleaned high-volume driver online/offline status events.
+      Deduplicated, timestamps standardized.
+      Supports driver activity monitoring, churn tracking, and online hours calculations.
+   
+    columns:
+      - name: event_id
+        description: Unique event identifier
+        tests:
+          - not_null
+          - unique
+      - name: driver_id
+        description: Associated driver identifier
+        tests:
+          - not_null
+          - relationships:               
+              arguments:
+                to: ref('stg_drivers')
+                field: driver_id
+      - name: status
+        description: Normalized status (online / offline)
+        tests:
+          - accepted_values:
+              arguments:
+                values: ['online', 'offline']
+          - not_null
+      - name: event_timestamp
+        description: Standardized timestamp of the status change
+        tests:
+          - not_null

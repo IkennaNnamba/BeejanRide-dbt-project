@@ -1,0 +1,73 @@
+version: 2
+
+models:
+  - name: int_driver_trip_summary
+    description: |
+      One row per driver with lifetime trip stats.
+      Includes total trips, revenue, completion rate, and churn flag.
+      A driver is considered churned if they have not taken a trip in 30+ days.
+
+      Upstream: int_trips_enriched
+      Downstream: fct_driver_performance, mart_driver_leaderboard
+
+    columns:
+      - name: driver_id
+        description: Unique driver identifier
+        tests:
+          - not_null
+          - unique
+
+      - name: total_trips
+        description: Total number of trips assigned to this driver.
+        tests:
+          - not_null
+
+      - name: completion_rate_pct
+        description: |
+          Percentage of trips the driver completed.
+          Calculated as completed_trips / total_trips * 100.
+
+      - name: is_churned
+        description: |
+          True if the driver has not taken any trip in the last 30 days.
+          Based on days_since_last_trip > 30.
+        tests:
+          - not_null
+
+      - name: days_since_last_trip
+        description: Number of days between today and the driver's most recent trip.
+        tests:
+          - not_null
+
+      - name: total_revenue
+        description: Sum of actual_fare across all completed trips for this driver.
+  - name: int_driver_activity
+    description: |
+      One row per driver summarising their online activity.
+      Uses LEAD() window function to pair online/offline status events
+      and calculate session durations.
+
+      Upstream: stg_driver_status_events
+      Downstream: fct_driver_performance, mart_driver_leaderboard
+    
+    columns:
+      - name: driver_id
+        description: Unique driver identifier
+        tests:
+          - not_null
+          - unique
+
+      - name: total_online_hours
+        description: |
+          Total hours the driver has been online across all sessions.
+          Calculated by summing all online session durations.
+        tests:
+          - not_null
+
+      - name: total_online_sessions
+        description: Number of times the driver came online.
+        tests:
+          - not_null
+
+      - name: avg_session_duration_minutes
+        description: Average length of an online session in minutes.
