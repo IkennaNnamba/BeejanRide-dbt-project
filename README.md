@@ -92,7 +92,8 @@ drivers_raw ──── driver_status_events_raw
 
 ### Marts Layer ERD (Star Schema)
 
-This is what analysts and dashboards actually query. See `erd_marts.html` in the repository for the full interactive version.
+This is what analysts and dashboards actually query. 
+View the interactive ERD here: [BeejanRide Marts ERD](https://ikennannamba.github.io/BeejanRide-dbt-project/erd_marts.html)
 
 ```
                     dim_drivers
@@ -186,7 +187,7 @@ BeejanRide_project/
 
 ## Lineage Graph
 
-![Lineage Graph](LineageGraph.png)
+[Lineage Graph](LineageGraph.png)
 
 The lineage graph shows the full data flow from raw BigQuery sources (green) through staging and intermediate models (teal) to the final mart tables and custom tests (right). Every dependency is explicit through `ref()` — no hardcoded table names exist anywhere in the project.
 
